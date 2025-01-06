@@ -1,0 +1,23 @@
+{
+  "name": "og-bot-fn",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/**/*/index.js",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rimraf dist",
+    "prestart": "pnpm run clean && pnpm run build",
+    "start": "func start"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@azure/functions": "^4.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.7.2"
+  }
+}
