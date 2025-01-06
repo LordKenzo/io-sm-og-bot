@@ -1,3 +1,5 @@
+import { ExpectedConfiguration } from "../types/ExpectedConfiguration";
+
 class App {
   name: string;
   constructor({}) {
@@ -8,19 +10,20 @@ class App {
   }
 }
 
-export const runSlackApp = (payload: any) => {
-  const globalForSlackApp = global as unknown as { slackApp: App };
+export const runSlackApp =
+  (config: ExpectedConfiguration) => (payload: any) => {
+    const globalForSlackApp = global as unknown as { slackApp: App };
 
-  const slackApp =
-    globalForSlackApp.slackApp ||
-    new App({
-      token: "xoxb-PRENDILO-DA-ENV",
-      signingSecret: "dfc-PRENDILO-DA-ENV",
-      processBeforeResponse: true,
-    });
+    const slackApp =
+      globalForSlackApp.slackApp ||
+      new App({
+        token: config.bot_oauth_token,
+        signingSecret: config.signing_secret,
+        processBeforeResponse: true,
+      });
 
-  if (process.env.NODE_ENV !== "production")
-    globalForSlackApp.slackApp = slackApp;
-  console.log(`Utilizzo SlackApp creata: ${slackApp.name}`);
-  return slackApp;
-};
+    if (process.env.NODE_ENV !== "production")
+      globalForSlackApp.slackApp = slackApp;
+    console.log(`Utilizzo SlackApp creata: ${slackApp.name}`);
+    return slackApp;
+  };
