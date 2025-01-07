@@ -7,7 +7,7 @@ const runnable = Effect.gen(function* () {
   const configOrFail = yield* Effect.either(getConfig());
   if (Either.isLeft(configOrFail)) {
     const error = configOrFail.left;
-    console.log(`Errore lettura configurazione ${error}`);
+    console.error(`Errore lettura configurazione ${error}`);
     process.exit(1);
   }
   return configOrFail.right;

@@ -1,31 +1,74 @@
-import { HttpRequest, InvocationContext } from "@azure/functions";
-import { parseBody, readHeader } from "../utils/parseRequest";
+
+import { HttpHandler, HttpRequest, InvocationContext } from "@azure/functions";
+import { parseBodyEffect, readHeader } from "../utils/parseRequest";
 import { runSlackApp } from "./app";
 import { ExpectedConfiguration } from "../types/ExpectedConfiguration";
+import { Effect, Context, pipe } from "effect";
 
-export const handler =
-  (config: ExpectedConfiguration) =>
-  async (request: HttpRequest, context: InvocationContext) => {
-    context.log(`Running Service ${config.service_name}`);
+export class Configuration extends Context.Tag("Configuration")<
+  Configuration,
+  ExpectedConfiguration
+>() {}
 
-    const body = await request.text();
-    const contentType = readHeader(request, "content-type");
-    const payload = parseBody(body, contentType);
-    console.log(payload);
+export class BuildHandler extends Context.Tag("BuildPokeApiUrl")<
+  BuildHandler,
+  (conf: ExpectedConfiguration) => HttpHandler
+>() {
+  static readonly Live = Effect.gen(function* () {
+    const config = yield* Configuration; // 👈 Creo la dipendenza
 
-    if (payload && payload.challenge) {
-      const { challenge } = payload;
-      return {
-        status: 200,
-        body: JSON.stringify({
-          challenge,
-        }),
+    return BuildHandler.of(() => {
+      return async (request: HttpRequest, context: InvocationContext) => {
+        context.log(`Running Service ${config.service_name}`);
+        const program = pipe(
+          Effect.tryPromise(() => request.text()),
+
+          Effect.flatMap((body) =>
+            pipe(
+              readHeader(request, "content-type"),
+              Effect.flatMap((contentType) =>
+                parseBodyEffect(body, contentType)
+              )
+            )
+          ),
+
+          Effect.tap((payload) => console.log(payload)),
+          Effect.andThen((payload) => {
+            if (payload && payload.challenge) {
+              const { challenge } = payload;
+              return {
+                status: 200,
+                body: JSON.stringify({
+                  challenge,
+                }),
+              };
+            }
+
+            runSlackApp(config)(payload);
+
+            return {
+              status: 202,
+            };
+          })
+        );
+        return Effect.runPromise(program);
       };
-    }
+    });
+  });
+}
 
-    runSlackApp(config)(payload);
+const program = Effect.gen(function* () {
+  const generatedHandler = yield* BuildHandler.Live;
+  return yield* Effect.succeed(generatedHandler);
+});
 
-    return {
-      status: 202,
-    };
-  };
+const runnable = (config: ExpectedConfiguration) =>
+  program.pipe(
+    Effect.provideServiceEffect(BuildHandler, BuildHandler.Live),
+    Effect.provideServiceEffect(Configuration, Effect.succeed(config))
+  );
+
+export const handler = (config: ExpectedConfiguration) => {
+  const res = Effect.runSync(runnable(config));
+  return res(config);
+};

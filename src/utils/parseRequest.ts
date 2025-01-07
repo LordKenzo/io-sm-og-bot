@@ -22,7 +22,7 @@ const isXWWWForm = (contentType: string | undefined) =>
   });
 
 export const readHeader = (request: HttpRequest, key: string) =>
-  Object.fromEntries(request.headers.entries())[key];
+  Effect.succeed(Object.fromEntries(request.headers.entries())[key]);
 
 export const parseBodyEffect = (
   stringBody: string | null,
