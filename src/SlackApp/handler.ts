@@ -1,9 +1,7 @@
-import { HttpHandler, HttpRequest, InvocationContext } from "@azure/functions";
-import { parseBody, parseBodyEffect, readHeader } from "../utils/parseRequest";
+import { HttpRequest, InvocationContext } from "@azure/functions";
+import { parseBody, readHeader } from "../utils/parseRequest";
 import { runSlackApp } from "./app";
 import { ExpectedConfiguration } from "../types/ExpectedConfiguration";
-import { Effect, Context, pipe } from "effect";
-
 
 export const handler =
   (config: ExpectedConfiguration) =>

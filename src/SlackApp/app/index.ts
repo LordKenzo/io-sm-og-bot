@@ -27,7 +27,7 @@ export const runSlackApp =
           signingSecret: config.signing_secret,
           processBeforeResponse: true,
         });
-        app.command("/ver", async ({ command, ack, say }) => {
+        app.command("/ver", async ({ ack, say }) => {
           await ack();
           const answer = "eccola: v1.0";
           if (answer) say(answer);
