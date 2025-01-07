@@ -1,47 +1,33 @@
-import { HttpRequest, InvocationContext } from "@azure/functions";
-import * as packageJson from "../../package.json";
-import { parseBody, readHeader } from "./utils/parseRequest";
+import { HttpHandler, HttpRequest, InvocationContext } from "@azure/functions";
+import { parseBody, parseBodyEffect, readHeader } from "../utils/parseRequest";
 import { runSlackApp } from "./app";
-import { ExpectedConfiguration } from "./types/ExpectedConfiguration";
+import { ExpectedConfiguration } from "../types/ExpectedConfiguration";
+import { Effect, Context, pipe } from "effect";
+
 
 export const handler =
   (config: ExpectedConfiguration) =>
   async (request: HttpRequest, context: InvocationContext) => {
-    context.log(`Starting Service ${config.service_name}`);
+    context.log(`Running Service ${config.service_name}`);
 
-    if (request.method === "GET") {
-      context.log(`Http request on GET for ${request.url}`);
+    const body = await request.text();
+    const contentType = readHeader(request, "content-type");
+    const payload = parseBody(body, contentType);
+    console.log(payload);
+
+    if (payload && payload.challenge) {
+      const { challenge } = payload;
       return {
-        body: JSON.stringify({ data: `Hello World` }),
         status: 200,
-      };
-    } else if (request.method === "POST") {
-      const body = await request.text();
-      const contentType = readHeader(request, "content-type");
-      const payload = parseBody(body, contentType);
-
-      if (payload && payload.challenge) {
-        const { challenge } = payload;
-        return {
-          status: 200,
-          body: JSON.stringify({
-            challenge,
-          }),
-        };
-      }
-
-      runSlackApp(config)(payload);
-
-      return {
         body: JSON.stringify({
-          message: "Start App",
+          challenge,
         }),
-        status: 202,
-      };
-    } else {
-      return {
-        body: JSON.stringify({ error: `Method not allowed` }),
-        status: 405,
       };
     }
+
+    runSlackApp(config)(payload);
+
+    return {
+      status: 202,
+    };
   };

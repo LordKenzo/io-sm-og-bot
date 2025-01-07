@@ -1,29 +1,60 @@
-import { ExpectedConfiguration } from "../types/ExpectedConfiguration";
+import { App, ReceiverEvent, StringIndexed } from "@slack/bolt";
+import { ExpectedConfiguration } from "../../types/ExpectedConfiguration";
 
-class App {
-  name: string;
-  constructor({}) {
-    const createdAt = new Date();
+const globalForSlackApp = global as unknown as { slackApp: App };
 
-    this.name = `Istanza creata ${createdAt.getHours()}:${createdAt.getMinutes()}:${createdAt.getSeconds()}`;
-    console.log("Creata classe slack App");
-  }
-}
+const slackEvent = (payload: StringIndexed): ReceiverEvent => {
+  return {
+    body: payload,
+    /* eslint-disable @typescript-eslint/no-explicit-any */
+    ack: async (response: Response): Promise<any> => {
+      return {
+        statusCode: 200,
+        body: response ?? "",
+      };
+    },
+  };
+};
 
 export const runSlackApp =
-  (config: ExpectedConfiguration) => (payload: any) => {
-    const globalForSlackApp = global as unknown as { slackApp: App };
-
+  (config: ExpectedConfiguration) => async (payload: any) => {
     const slackApp =
       globalForSlackApp.slackApp ||
-      new App({
-        token: config.bot_oauth_token,
-        signingSecret: config.signing_secret,
-        processBeforeResponse: true,
-      });
+      (function () {
+        console.log("Creo istanza slack app 🚀");
+        const app = new App({
+          token: config.bot_oauth_token,
+          signingSecret: config.signing_secret,
+          processBeforeResponse: true,
+        });
+        app.command("/ver", async ({ command, ack, say }) => {
+          await ack();
+          const answer = "eccola: v1.0";
+          if (answer) say(answer);
+        });
+        app.message(async ({ message, say }) => {
+          console.log(message);
+          if (message) {
+            if (
+              message.subtype === undefined ||
+              message.subtype === "bot_message"
+            ) {
+              if (message.text) {
+                const reversedText = [...message.text].reverse().join("");
+                await say(reversedText);
+              }
+            }
+          }
+        });
+        return app;
+      })();
 
     if (process.env.NODE_ENV !== "production")
       globalForSlackApp.slackApp = slackApp;
-    console.log(`Utilizzo SlackApp creata: ${slackApp.name}`);
+
+    console.log("Evento processato da Slack App");
+
+    slackApp.processEvent(slackEvent(payload));
+
     return slackApp;
   };
