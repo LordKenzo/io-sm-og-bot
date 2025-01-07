@@ -1,7 +1,7 @@
 import { HttpRequest } from "@azure/functions";
 import { parse } from "querystring";
 import { ContentTypeError, JsonError } from "./customErrors";
-import { Effect, pipe } from "effect";
+import { Effect } from "effect";
 
 const jsonParse = (body: string): Effect.Effect<any, JsonError, never> =>
   Effect.try({
@@ -22,7 +22,7 @@ const isXWWWForm = (contentType: string | undefined) =>
   });
 
 export const readHeader = (request: HttpRequest, key: string) =>
-  Object.fromEntries(request.headers.entries())[key];
+  Effect.succeed(Object.fromEntries(request.headers.entries())[key]);
 
 export const parseBodyEffect = (
   stringBody: string | null,
