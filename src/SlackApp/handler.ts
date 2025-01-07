@@ -1,9 +1,9 @@
-
 import { HttpHandler, HttpRequest, InvocationContext } from "@azure/functions";
 import { parseBodyEffect, readHeader } from "../utils/parseRequest";
 import { runSlackApp } from "./app";
 import { ExpectedConfiguration } from "../types/ExpectedConfiguration";
 import { Effect, Context, pipe } from "effect";
+import { ContentTypeError } from "../utils/customErrors";
 
 export class Configuration extends Context.Tag("Configuration")<
   Configuration,
@@ -49,6 +49,13 @@ export class BuildHandler extends Context.Tag("BuildPokeApiUrl")<
             return {
               status: 202,
             };
+          })
+        ).pipe(
+          Effect.catchTags({
+            ContentTypeError: () =>
+              Effect.succeed({
+                status: 400,
+              }),
           })
         );
         return Effect.runPromise(program);
