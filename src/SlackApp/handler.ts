@@ -1,3 +1,4 @@
+
 import { HttpHandler, HttpRequest, InvocationContext } from "@azure/functions";
 import { parseBodyEffect, readHeader } from "../utils/parseRequest";
 import { runSlackApp } from "./app";
