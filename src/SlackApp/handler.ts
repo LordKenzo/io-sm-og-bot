@@ -3,14 +3,46 @@ import { parseBodyEffect, readHeader } from "../utils/parseRequest";
 import { runSlackApp } from "./app";
 import { ExpectedConfiguration } from "../types/ExpectedConfiguration";
 import { Effect, Context, pipe } from "effect";
-import { ContentTypeError } from "../utils/customErrors";
 
-export class Configuration extends Context.Tag("Configuration")<
+class Configuration extends Context.Tag("Configuration")<
   Configuration,
   ExpectedConfiguration
 >() {}
 
-export class BuildHandler extends Context.Tag("BuildPokeApiUrl")<
+const replyToChallenge = (payload: { challenge: string }) => {
+  console.log("CREO replyToChallenge");
+  return Effect.succeed({
+    status: 200,
+    body: JSON.stringify({ challenge: payload.challenge }),
+  });
+};
+
+const eventToSlack = (
+  payload: { challenge: string },
+  config: ExpectedConfiguration
+) => {
+  console.log("CREO eventToSlack");
+  runSlackApp(config)(payload);
+
+  return Effect.succeed({
+    status: 202,
+  });
+};
+
+// Funzione per gestire il payload della richiesta
+const isChallengeOrEvent = (payload: any, config: ExpectedConfiguration) =>
+  pipe(
+    Effect.orElse(
+      pipe(
+        Effect.succeed(payload),
+        Effect.filterOrFail((payload) => payload && payload.challenge),
+        Effect.flatMap(replyToChallenge)
+      ),
+      () => eventToSlack(payload, config)
+    )
+  );
+
+class BuildHandler extends Context.Tag("BuildPokeApiUrl")<
   BuildHandler,
   (conf: ExpectedConfiguration) => HttpHandler
 >() {
@@ -31,28 +63,21 @@ export class BuildHandler extends Context.Tag("BuildPokeApiUrl")<
               )
             )
           ),
-
-          Effect.tap((payload) => console.log(payload)),
+          // Effect.tap((payload) => console.log(payload)),
           Effect.andThen((payload) => {
-            if (payload && payload.challenge) {
-              const { challenge } = payload;
-              return {
-                status: 200,
-                body: JSON.stringify({
-                  challenge,
-                }),
-              };
-            }
-
-            runSlackApp(config)(payload);
-
-            return {
-              status: 202,
-            };
+            return isChallengeOrEvent(payload, config);
           })
         ).pipe(
           Effect.catchTags({
+            UnknownException: () =>
+              Effect.succeed({
+                status: 500,
+              }),
             ContentTypeError: () =>
+              Effect.succeed({
+                status: 422,
+              }),
+            JsonError: () =>
               Effect.succeed({
                 status: 400,
               }),
