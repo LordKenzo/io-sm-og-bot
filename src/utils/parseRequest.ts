@@ -1,7 +1,7 @@
 import { HttpRequest } from "@azure/functions";
 import { parse } from "querystring";
 import { ContentTypeError, JsonError } from "./customErrors";
-import { Effect } from "effect";
+import { Effect, pipe } from "effect";
 
 const jsonParse = (body: string): Effect.Effect<any, JsonError, never> =>
   Effect.try({
@@ -21,10 +21,10 @@ const isXWWWForm = (contentType: string | undefined) =>
     return extractedContentType === "application/x-www-form-urlencoded";
   });
 
-export const readHeader = (request: HttpRequest, key: string) =>
+const readHeader = (request: HttpRequest, key: string) =>
   Effect.succeed(Object.fromEntries(request.headers.entries())[key]);
 
-export const parseBodyEffect = (
+const parseBody = (
   stringBody: string | null,
   contentType: string | undefined
 ) => {
@@ -46,3 +46,14 @@ export const parseBodyEffect = (
     return yield* new ContentTypeError();
   });
 };
+
+export const parseRequest = (request: HttpRequest) =>
+  pipe(
+    Effect.tryPromise(() => request.text()),
+    Effect.flatMap((body) =>
+      pipe(
+        readHeader(request, "content-type"),
+        Effect.flatMap((contentType) => parseBody(body, contentType))
+      )
+    )
+  );
