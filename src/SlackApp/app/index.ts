@@ -1,8 +1,6 @@
 import { App, ReceiverEvent, StringIndexed } from "@slack/bolt";
 import { ExpectedConfiguration } from "../../types/ExpectedConfiguration";
-import { Effect, pipe } from "effect";
-import { fromNullable } from "effect/Option";
-import { ContentTypeError } from "../../utils/customErrors";
+import { setupInteractiveSuggestions } from "./opsgenie/interactions";
 
 const globalForSlackApp = global as unknown as { slackApp: App };
 
@@ -33,7 +31,6 @@ export const runSlackApp =
   };
 
 const initApp = function (config: ExpectedConfiguration) {
-  
   console.log("Creo istanza slack app 🚀");
 
   const app = new App({
@@ -48,24 +45,7 @@ const initApp = function (config: ExpectedConfiguration) {
     if (answer) say(answer);
   });
 
-  app.message(async ({ message, say }) => {
-    const p = pipe(
-      fromNullable(message), // Gestisce il caso in cui `message` sia nullo o indefinito
-      Effect.filterOrFail(
-        (msg) => msg.subtype === undefined || msg.subtype === "bot_message", // Filtra messaggi validi
-        () => new ContentTypeError()
-      ),
-      Effect.flatMap((msg) =>
-        pipe(
-          fromNullable(msg.text), // Gestisce il caso in cui `msg.text` sia nullo o indefinito
-          Effect.map((text) => [...text].reverse().join("")), // Inverte il testo
-          Effect.flatMap(
-            (reversedText) => Effect.tryPromise(() => say(reversedText)) // Invia il testo invertito
-          )
-        )
-      )
-    );
-    Effect.runPromise(p);
-  });
+  setupInteractiveSuggestions(config)(app);
+  
   return app;
 };

@@ -16,6 +16,7 @@
   "dependencies": {
     "@azure/functions": "^4.6.0",
     "@slack/bolt": "^4.2.0",
+    "date-fns": "^4.1.0",
     "effect": "^3.12.1"
   },
   "devDependencies": {
