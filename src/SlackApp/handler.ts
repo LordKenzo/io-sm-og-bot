@@ -3,7 +3,7 @@ import { parseRequest } from "../utils/parseRequest";
 import { runSlackApp } from "./app";
 import { ExpectedConfiguration } from "../types/ExpectedConfiguration";
 import { Effect, Context, pipe } from "effect";
-import { SlackPayload } from "../types/SlackPayload";
+import { SlackPayload } from "../types/Slack";
 import { Configuration } from "../types/Configuration";
 
 // Rispondo ad una challenge di configurazione Event Slack

@@ -11,10 +11,18 @@ const program = Effect.gen(function* () {
   );
   const bot_oauth_token = yield* Config.string("SLACK_BOT_OAUTH_TOKEN");
   const signing_secret = yield* Config.string("SLACK_SIGNING_SECRET");
+  const opsgenie_api_key = yield* Config.string("OPSGENIE_API_KEY");
+  const opsgenie_schedule_id = yield* Config.string("OPSGENIE_SCHEDULE_ID");
+  const reperibilita_channel_id = yield* Config.string(
+    "REPERIBILITA_CHANNEL_ID"
+  );
   return {
     service_name,
     bot_oauth_token,
     signing_secret,
+    opsgenie_api_key,
+    opsgenie_schedule_id,
+    reperibilita_channel_id,
   };
 });
 

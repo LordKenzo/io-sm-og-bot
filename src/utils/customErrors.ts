@@ -5,3 +5,7 @@ export class ContentTypeError extends Data.TaggedError("ContentTypeError")<
 > {}
 
 export class JsonError extends Data.TaggedError("JsonError")<Readonly<{}>> {}
+
+export class SlackUserRetrieveError extends Data.TaggedError(
+  "SlackUserRetrieveError"
+)<Readonly<{}>> {}
